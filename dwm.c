@@ -211,6 +211,7 @@ static void setup(void);
 static void seturgent(Client *c, int urg);
 static void showhide(Client *c);
 static void spawn(const Arg *arg);
+static void swaptags(const Arg *arg);
 static void tag(const Arg *arg);
 static void tagmon(const Arg *arg);
 static void tile(Monitor *m);
@@ -1712,6 +1713,26 @@ spawn(const Arg *arg)
 		execvp(((char **)arg->v)[0], (char **)arg->v);
 		die("dwm: execvp '%s' failed:", ((char **)arg->v)[0]);
 	}
+}
+
+void
+swaptags(const Arg *arg)
+{
+	Client *c;
+	unsigned int curtag = selmon->tagset[selmon->seltags];
+	unsigned int newtag = arg->ui & TAGMASK;
+
+	if (newtag == curtag || !curtag || (curtag & (curtag - 1)))
+		return;
+
+	for (c = selmon->clients; c; c = c->next) {
+		if ((c->tags & newtag) || (c->tags & curtag))
+			c->tags ^= curtag ^ newtag;
+		if (!c->tags)
+			c->tags = newtag;
+	}
+
+	view(arg);
 }
 
 void
