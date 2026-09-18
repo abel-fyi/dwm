@@ -69,12 +69,16 @@ static const char *emojicmd[] = { "/bin/sh", "-c",
 	"awk -F'# ' '/; fully-qualified/ { sub(/ E[0-9.]+ /, \" \", $2); print $2 }' | "
 	"dmenu -i -l 20 -p '😀 Emoji' -m 0 -fn 'monospace:size=13' -nb '#222222' -nf '#bbbbbb' -sb '#005577' -sf '#eeeeee' | sed 's/ .*//' | "
 	"xclip -selection clipboard", NULL };
+static const char *brightdowncmd[] = { "brightnessctl", "set", "5%-", NULL };
+static const char *brightupcmd[]   = { "brightnessctl", "set", "+5%", NULL };
 static const char *termcmd[]  = { "st", NULL };
 
 static const Key keys[] = {
 	/* modifier                     key        function        argument */
 	{ MODKEY,                       XK_p,      spawn,          {.v = dmenucmd } },
 	{ MODKEY,                       XK_e,      spawn,          {.v = emojicmd } },
+	{ 0,                            XF86XK_MonBrightnessDown, spawn, {.v = brightdowncmd } },
+	{ 0,                            XF86XK_MonBrightnessUp,   spawn, {.v = brightupcmd } },
 	{ MODKEY|ShiftMask,             XK_Return, spawn,          {.v = termcmd } },
 	{ MODKEY,                       XK_b,      togglebar,      {0} },
 	{ MODKEY,                       XK_j,      focusstack,     {.i = +1 } },

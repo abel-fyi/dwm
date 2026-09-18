@@ -25,6 +25,20 @@ while :; do
 
     ram=$(free | awk '/^Mem:/ {printf "%.0f%%", $3 / $2 * 100}')
 
+    network=$(nmcli -t --escape no -f DEVICE,TYPE,STATE,CONNECTION device status 2>/dev/null |
+        awk -F: '$3 == "connected" && $2 == "wifi" { print "📶 " $4; found = 1; exit }
+                 $3 == "connected" && $2 == "ethernet" { wired = "🌐 " $4 }
+                 END { if (!found && wired) print wired }')
+
+    if [ -z "$network" ]; then
+        for interface in /sys/class/net/*; do
+            [ "${interface##*/}" = "lo" ] && continue
+            [ "$(cat "$interface/operstate" 2>/dev/null)" = "up" ] || continue
+            network="🌐 ${interface##*/}"
+            break
+        done
+    fi
+
     bat=""
     for b in /sys/class/power_supply/BAT*; do
         [ -r "$b/capacity" ] || continue   # no battery (desktop) -> skip
@@ -38,5 +52,6 @@ while :; do
         bat="$bat $icon$capacity%"
     done
 
-    xsetroot -name " 🧠 ${cpu}%  💾 $ram$bat  📅 $(date '+%Y-%m-%d  %H:%M:%S') "
+    [ -n "$network" ] && network="  $network"
+    xsetroot -name " 🧠 ${cpu}%  💾 $ram$bat$network  📅 $(date '+%a %Y-%m-%d  🕑 %H:%M:%S') "
 done
