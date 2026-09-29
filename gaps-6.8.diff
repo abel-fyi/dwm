@@ -1,0 +1,41 @@
+--- a/config.h
++++ b/config.h
+@@ -4,6 +4,7 @@
+ 
+ /* appearance */
+ static const unsigned int borderpx  = 2;        /* border pixel of windows */
++static const unsigned int gappx     = 5;        /* fixed gaps in tiled layout; 0 disables */
+ static const unsigned int snap      = 32;       /* snap pixel */
+ static const int showbar            = 1;        /* 0 means no bar */
+ static const int topbar             = 1;        /* 0 means bottom bar */
+--- a/dwm.c
++++ b/dwm.c
+@@ -1697,18 +1697,18 @@
+ 	if (n > m->nmaster)
+ 		mw = m->nmaster ? m->ww * m->mfact : 0;
+ 	else
+-		mw = m->ww;
+-	for (i = my = ty = 0, c = nexttiled(m->clients); c; c = nexttiled(c->next), i++)
++		mw = m->ww - gappx;
++	for (i = 0, my = ty = gappx, c = nexttiled(m->clients); c; c = nexttiled(c->next), i++)
+ 		if (i < m->nmaster) {
+-			h = (m->wh - my) / (MIN(n, m->nmaster) - i);
+-			resize(c, m->wx, m->wy + my, mw - (2*c->bw), h - (2*c->bw), 0);
+-			if (my + HEIGHT(c) < m->wh)
+-				my += HEIGHT(c);
++			h = (m->wh - my) / (MIN(n, m->nmaster) - i) - gappx;
++			resize(c, m->wx + gappx, m->wy + my, mw - (2*c->bw) - gappx, h - (2*c->bw), 0);
++			if (my + HEIGHT(c) + gappx < m->wh)
++				my += HEIGHT(c) + gappx;
+ 		} else {
+-			h = (m->wh - ty) / (n - i);
+-			resize(c, m->wx + mw, m->wy + ty, m->ww - mw - (2*c->bw), h - (2*c->bw), 0);
+-			if (ty + HEIGHT(c) < m->wh)
+-				ty += HEIGHT(c);
++			h = (m->wh - ty) / (n - i) - gappx;
++			resize(c, m->wx + mw + gappx, m->wy + ty, m->ww - mw - (2*c->bw) - 2*gappx, h - (2*c->bw), 0);
++			if (ty + HEIGHT(c) + gappx < m->wh)
++				ty += HEIGHT(c) + gappx;
+ 		}
+ }
+ 

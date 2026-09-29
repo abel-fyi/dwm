@@ -1,0 +1,7 @@
+*.o
+*.orig
+*.rej
+/dwm
+/dwm-status
+/dwm-*.tar
+/dwm-*.tar.gz

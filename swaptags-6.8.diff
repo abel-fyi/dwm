@@ -1,0 +1,47 @@
+--- a/config.h
++++ b/config.h
+@@ -55,7 +55,8 @@
+ 	{ MODKEY,                       KEY,      view,           {.ui = 1 << TAG} }, \
+ 	{ MODKEY|ControlMask,           KEY,      toggleview,     {.ui = 1 << TAG} }, \
+ 	{ MODKEY|ShiftMask,             KEY,      tag,            {.ui = 1 << TAG} }, \
+-	{ MODKEY|ControlMask|ShiftMask, KEY,      toggletag,      {.ui = 1 << TAG} },
++	{ MODKEY|ControlMask|ShiftMask, KEY,      toggletag,      {.ui = 1 << TAG} }, \
++	{ Mod1Mask|ShiftMask,            KEY,      swaptags,       {.ui = 1 << TAG} },
+ 
+ /* helper for spawning shell commands in the pre dwm-5.0 fashion */
+ #define SHCMD(cmd) { .v = (const char*[]){ "/bin/sh", "-c", cmd, NULL } }
+--- a/dwm.c
++++ b/dwm.c
+@@ -205,6 +205,7 @@
+ static void seturgent(Client *c, int urg);
+ static void showhide(Client *c);
+ static void spawn(const Arg *arg);
++static void swaptags(const Arg *arg);
+ static void tag(const Arg *arg);
+ static void tagmon(const Arg *arg);
+ static void tile(Monitor *m);
+@@ -1667,6 +1668,24 @@
+ }
+ 
+ void
++swaptags(const Arg *arg)
++{
++	Client *c;
++	unsigned int target = arg->ui & TAGMASK;
++	unsigned int current = selmon->tagset[selmon->seltags];
++	unsigned int both = current | target;
++
++	/* Swap two single tags on the selected monitor. */
++	if (!target || (target & (target - 1)) || target == current
++	|| !current || (current & (current - 1)))
++		return;
++	for (c = selmon->clients; c; c = c->next)
++		if ((c->tags & both) == current || (c->tags & both) == target)
++			c->tags ^= both;
++	view(arg);
++}
++
++void
+ tag(const Arg *arg)
+ {
+ 	if (selmon->sel && arg->ui & TAGMASK) {
