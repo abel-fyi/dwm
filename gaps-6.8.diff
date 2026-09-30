@@ -1,9 +1,6 @@
 --- a/config.h
 +++ b/config.h
-@@ -4,6 +4,7 @@
- 
- /* appearance */
- static const unsigned int borderpx  = 2;        /* border pixel of windows */
+@@ -5,3 +5,4 @@
 +static const unsigned int gappx     = 5;        /* fixed gaps in tiled layout; 0 disables */
  static const unsigned int snap      = 32;       /* snap pixel */
  static const int showbar            = 1;        /* 0 means no bar */

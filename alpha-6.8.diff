@@ -1,0 +1,247 @@
+--- a/config.h
++++ b/config.h
+@@ -7,2 +7,4 @@
+ static const int topbar             = 1;        /* 0 means bottom bar */
++static const unsigned int baralpha  = 0xc0;     /* 0x00 transparent, 0xff opaque */
++static const unsigned int borderalpha = 0x40;  /* 0x00 transparent, 0xff opaque */
+ static const char *fonts[]          = { "monospace:size=10" };
+--- a/config.mk
++++ b/config.mk
+@@ -23,7 +23,7 @@
+ 
+ # includes and libs
+ INCS = -I${X11INC} -I${FREETYPEINC}
+-LIBS = -L${X11LIB} -lX11 ${XINERAMALIBS} ${FREETYPELIBS}
++LIBS = -L${X11LIB} -lX11 ${XINERAMALIBS} ${FREETYPELIBS} -lXrender
+ 
+ # flags
+ CPPFLAGS = -D_DEFAULT_SOURCE -D_BSD_SOURCE -D_XOPEN_SOURCE=700L -DVERSION=\"${VERSION}\" ${XINERAMAFLAGS}
+--- a/drw.c
++++ b/drw.c
+@@ -47,17 +47,20 @@
+ }
+ 
+ Drw *
+-drw_create(Display *dpy, int screen, Window root, unsigned int w, unsigned int h)
++drw_create(Display *dpy, int screen, Window root, unsigned int w, unsigned int h, Visual *visual, unsigned int depth, Colormap cmap)
+ {
+ 	Drw *drw = ecalloc(1, sizeof(Drw));
+ 
+ 	drw->dpy = dpy;
+ 	drw->screen = screen;
+ 	drw->root = root;
++	drw->visual = visual;
++	drw->depth = depth;
++	drw->cmap = cmap;
+ 	drw->w = w;
+ 	drw->h = h;
+-	drw->drawable = XCreatePixmap(dpy, root, w, h, DefaultDepth(dpy, screen));
+-	drw->gc = XCreateGC(dpy, root, 0, NULL);
++	drw->drawable = XCreatePixmap(dpy, root, w, h, depth);
++	drw->gc = XCreateGC(dpy, drw->drawable, 0, NULL);
+ 	XSetLineAttributes(dpy, drw->gc, 1, LineSolid, CapButt, JoinMiter);
+ 
+ 	return drw;
+@@ -73,7 +76,7 @@
+ 	drw->h = h;
+ 	if (drw->drawable)
+ 		XFreePixmap(drw->dpy, drw->drawable);
+-	drw->drawable = XCreatePixmap(drw->dpy, drw->root, w, h, DefaultDepth(drw->dpy, drw->screen));
++	drw->drawable = XCreatePixmap(drw->dpy, drw->root, w, h, drw->depth);
+ }
+ 
+ void
+@@ -167,20 +170,20 @@
+ }
+ 
+ void
+-drw_clr_create(Drw *drw, Clr *dest, const char *clrname)
++drw_clr_create(Drw *drw, Clr *dest, const char *clrname, unsigned int alpha)
+ {
+ 	if (!drw || !dest || !clrname)
+ 		return;
+ 
+-	if (!XftColorAllocName(drw->dpy, DefaultVisual(drw->dpy, drw->screen),
+-	                       DefaultColormap(drw->dpy, drw->screen),
++	if (!XftColorAllocName(drw->dpy, drw->visual, drw->cmap,
+ 	                       clrname, dest))
+ 		die("error, cannot allocate color '%s'", clrname);
++	dest->pixel = (dest->pixel & 0x00ffffffU) | ((alpha & 0xffU) << 24);
+ }
+ 
+ /* Create color schemes. */
+ Clr *
+-drw_scm_create(Drw *drw, const char *clrnames[], size_t clrcount)
++drw_scm_create(Drw *drw, const char *clrnames[], const unsigned int alphas[], size_t clrcount)
+ {
+ 	size_t i;
+ 	Clr *ret;
+@@ -190,7 +193,7 @@
+ 		return NULL;
+ 
+ 	for (i = 0; i < clrcount; i++)
+-		drw_clr_create(drw, &ret[i], clrnames[i]);
++		drw_clr_create(drw, &ret[i], clrnames[i], alphas[i]);
+ 	return ret;
+ }
+ 
+@@ -201,8 +204,7 @@
+ 		return;
+ 
+ 	/* c is typedef XftColor Clr */
+-	XftColorFree(drw->dpy, DefaultVisual(drw->dpy, drw->screen),
+-	             DefaultColormap(drw->dpy, drw->screen), c);
++	XftColorFree(drw->dpy, drw->visual, drw->cmap, c);
+ }
+ 
+ void
+@@ -273,9 +275,7 @@
+ 		XFillRectangle(drw->dpy, drw->drawable, drw->gc, x, y, w, h);
+ 		if (w < lpad)
+ 			return x + w;
+-		d = XftDrawCreate(drw->dpy, drw->drawable,
+-		                  DefaultVisual(drw->dpy, drw->screen),
+-		                  DefaultColormap(drw->dpy, drw->screen));
++		d = XftDrawCreate(drw->dpy, drw->drawable, drw->visual, drw->cmap);
+ 		x += lpad;
+ 		w -= lpad;
+ 	}
+--- a/drw.h
++++ b/drw.h
+@@ -20,6 +20,9 @@
+ 	Display *dpy;
+ 	int screen;
+ 	Window root;
++	Visual *visual;
++	unsigned int depth;
++	Colormap cmap;
+ 	Drawable drawable;
+ 	GC gc;
+ 	Clr *scheme;
+@@ -27,7 +30,7 @@
+ } Drw;
+ 
+ /* Drawable abstraction */
+-Drw *drw_create(Display *dpy, int screen, Window win, unsigned int w, unsigned int h);
++Drw *drw_create(Display *dpy, int screen, Window win, unsigned int w, unsigned int h, Visual *visual, unsigned int depth, Colormap cmap);
+ void drw_resize(Drw *drw, unsigned int w, unsigned int h);
+ void drw_free(Drw *drw);
+ 
+@@ -39,9 +42,9 @@
+ void drw_font_getexts(Fnt *font, const char *text, unsigned int len, unsigned int *w, unsigned int *h);
+ 
+ /* Colorscheme abstraction */
+-void drw_clr_create(Drw *drw, Clr *dest, const char *clrname);
++void drw_clr_create(Drw *drw, Clr *dest, const char *clrname, unsigned int alpha);
+ void drw_clr_free(Drw *drw, Clr *c);
+-Clr *drw_scm_create(Drw *drw, const char *clrnames[], size_t clrcount);
++Clr *drw_scm_create(Drw *drw, const char *clrnames[], const unsigned int alphas[], size_t clrcount);
+ void drw_scm_free(Drw *drw, Clr *scm, size_t clrcount);
+ 
+ /* Cursor abstraction */
+--- a/dwm.c
++++ b/dwm.c
+@@ -36,6 +36,7 @@
+ #include <X11/Xlib.h>
+ #include <X11/Xproto.h>
+ #include <X11/Xutil.h>
++#include <X11/extensions/Xrender.h>
+ #ifdef XINERAMA
+ #include <X11/extensions/Xinerama.h>
+ #endif /* XINERAMA */
+@@ -231,6 +232,7 @@
+ static int xerror(Display *dpy, XErrorEvent *ee);
+ static int xerrordummy(Display *dpy, XErrorEvent *ee);
+ static int xerrorstart(Display *dpy, XErrorEvent *ee);
++static void xinitvisual(void);
+ static void zoom(const Arg *arg);
+ 
+ /* variables */
+@@ -266,6 +268,9 @@
+ static Drw *drw;
+ static Monitor *mons, *selmon;
+ static Window root, wmcheckwin;
++static Visual *visual;
++static unsigned int depth;
++static Colormap cmap;
+ 
+ /* configuration, allows nested code to access above variables */
+ #include "config.h"
+@@ -1558,7 +1563,8 @@
+ 	sw = DisplayWidth(dpy, screen);
+ 	sh = DisplayHeight(dpy, screen);
+ 	root = RootWindow(dpy, screen);
+-	drw = drw_create(dpy, screen, root, sw, sh);
++	xinitvisual();
++	drw = drw_create(dpy, screen, root, sw, sh, visual, depth, cmap);
+ 	if (!drw_fontset_create(drw, fonts, LENGTH(fonts)))
+ 		die("no fonts could be loaded.");
+ 	lrpad = drw->fonts->h;
+@@ -1585,8 +1591,9 @@
+ 	cursor[CurMove] = drw_cur_create(drw, XC_fleur);
+ 	/* init appearance */
+ 	scheme = ecalloc(LENGTH(colors), sizeof(Clr *));
++	const unsigned int alphas[] = { 0xffU, baralpha, borderalpha };
+ 	for (i = 0; i < LENGTH(colors); i++)
+-		scheme[i] = drw_scm_create(drw, colors[i], 3);
++		scheme[i] = drw_scm_create(drw, colors[i], alphas, 3);
+ 	/* init bars */
+ 	updatebars();
+ 	updatestatus();
+@@ -1821,16 +1828,18 @@
+ 	Monitor *m;
+ 	XSetWindowAttributes wa = {
+ 		.override_redirect = True,
+-		.background_pixmap = ParentRelative,
++		.background_pixel = 0,
++		.border_pixel = 0,
++		.colormap = cmap,
+ 		.event_mask = ButtonPressMask|ExposureMask
+ 	};
+ 	XClassHint ch = {"dwm", "dwm"};
+ 	for (m = mons; m; m = m->next) {
+ 		if (m->barwin)
+ 			continue;
+-		m->barwin = XCreateWindow(dpy, root, m->wx, m->by, m->ww, bh, 0, DefaultDepth(dpy, screen),
+-				CopyFromParent, DefaultVisual(dpy, screen),
+-				CWOverrideRedirect|CWBackPixmap|CWEventMask, &wa);
++		m->barwin = XCreateWindow(dpy, root, m->wx, m->by, m->ww, bh, 0, depth,
++				InputOutput, visual,
++				CWOverrideRedirect|CWBackPixel|CWBorderPixel|CWColormap|CWEventMask, &wa);
+ 		XDefineCursor(dpy, m->barwin, cursor[CurNormal]->cursor);
+ 		XMapRaised(dpy, m->barwin);
+ 		XSetClassHint(dpy, m->barwin, &ch);
+@@ -2129,6 +2138,33 @@
+ }
+ 
+ void
++xinitvisual(void)
++{
++	XVisualInfo template = { .screen = screen, .depth = 32, .class = TrueColor };
++	XVisualInfo *infos;
++	XRenderPictFormat *format;
++	int count, i;
++
++	visual = DefaultVisual(dpy, screen);
++	depth = DefaultDepth(dpy, screen);
++	cmap = DefaultColormap(dpy, screen);
++	infos = XGetVisualInfo(dpy, VisualScreenMask|VisualDepthMask|VisualClassMask,
++	                       &template, &count);
++	if (!infos)
++		return;
++	for (i = 0; i < count; i++) {
++		format = XRenderFindVisualFormat(dpy, infos[i].visual);
++		if (format && format->type == PictTypeDirect && format->direct.alphaMask) {
++			visual = infos[i].visual;
++			depth = infos[i].depth;
++			cmap = XCreateColormap(dpy, root, visual, AllocNone);
++			break;
++		}
++	}
++	XFree(infos);
++}
++
++void
+ zoom(const Arg *arg)
+ {
+ 	Client *c = selmon->sel;

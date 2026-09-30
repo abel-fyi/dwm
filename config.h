@@ -8,6 +8,8 @@ static const unsigned int gappx     = 7;        /* fixed gaps in tiled layout; 0
 static const unsigned int snap      = 32;       /* snap pixel */
 static const int showbar            = 1;        /* 0 means no bar */
 static const int topbar             = 1;        /* 0 means bottom bar */
+static const unsigned int baralpha  = 0xc0;     /* 0x00 transparent, 0xff opaque */
+static const unsigned int borderalpha = 0x40;  /* 0x00 transparent, 0xff opaque */
 static const char *fonts[]          = { "monospace:size=14" };
 static const char dmenufont[]       = "monospace:size=14";
 static const char col_gray1[]       = "#222222";

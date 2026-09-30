@@ -29,7 +29,7 @@ dist: clean
 	mkdir -p dwm-${VERSION}
 	cp -R LICENSE Makefile README.md config.h config.def.h config.mk\
 		dwm.1 drw.h util.h ${SRC} dwm-status.c\
-		gaps-6.8.diff pertag-6.8.diff swaptags-6.8.diff dwm-${VERSION}
+		gaps-6.8.diff pertag-6.8.diff swaptags-6.8.diff alpha-6.8.diff dwm-${VERSION}
 	tar -cf dwm-${VERSION}.tar dwm-${VERSION}
 	gzip dwm-${VERSION}.tar
 	rm -rf dwm-${VERSION}

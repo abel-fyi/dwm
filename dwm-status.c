@@ -1,4 +1,5 @@
 /* Linux status updater for stock dwm. See LICENSE for license details. */
+#include <dirent.h>
 #include <errno.h>
 #include <ifaddrs.h>
 #include <linux/wireless.h>
@@ -21,7 +22,7 @@ static int pending;
 static int refresh;
 static Display *display;
 static Atom utf8;
-static char status[256], memory[48], network[48], date[32], usage[32];
+static char status[256], memory[48], network[48], battery_text[32], date[48], usage[32];
 static int status_ready;
 static void audio(pa_mainloop *loop);
 
@@ -30,8 +31,8 @@ publish(void)
 {
 	if (!status_ready)
 		return;
-	snprintf(status, sizeof status, " %s  %s  %s  %s  %s ",
-	         usage, memory, network, vol, date);
+	snprintf(status, sizeof status, " %s  %s  %s  %s%s  %s ",
+	         usage, memory, network, vol, battery_text, date);
 	if (display) {
 		XChangeProperty(display, DefaultRootWindow(display), XA_WM_NAME,
 		                utf8, 8, PropModeReplace, (unsigned char *)status, strlen(status));
@@ -137,6 +138,49 @@ wifi(int sock, char *out, size_t size)
 	freeifaddrs(interfaces);
 	if (!wireless || supported)
 		snprintf(out, size, "📶 off");
+}
+
+static void
+battery(char *out, size_t size)
+{
+	DIR *dir = opendir("/sys/class/power_supply");
+	struct dirent *entry;
+	char path[512], type[32], state[32];
+	FILE *f;
+	int percent;
+
+	out[0] = '\0';
+	if (!dir)
+		return;
+	while ((entry = readdir(dir))) {
+		snprintf(path, sizeof path, "/sys/class/power_supply/%s/type", entry->d_name);
+		if (!(f = fopen(path, "r")))
+			continue;
+		if (fscanf(f, "%31s", type) != 1 || strcmp(type, "Battery")) {
+			fclose(f);
+			continue;
+		}
+		fclose(f);
+		snprintf(path, sizeof path, "/sys/class/power_supply/%s/capacity", entry->d_name);
+		if (!(f = fopen(path, "r")))
+			continue;
+		if (fscanf(f, "%d", &percent) != 1 || percent < 0 || percent > 100) {
+			fclose(f);
+			continue;
+		}
+		fclose(f);
+		snprintf(path, sizeof path, "/sys/class/power_supply/%s/status", entry->d_name);
+		state[0] = '\0';
+		if ((f = fopen(path, "r"))) {
+			if (fscanf(f, "%31s", state) != 1)
+				state[0] = '\0';
+			fclose(f);
+		}
+		snprintf(out, size, "  %s %d%%",
+		         !strcmp(state, "Charging") ? "⚡" : percent <= 25 ? "🪫" : "🔋", percent);
+		break;
+	}
+	closedir(dir);
 }
 
 static void
@@ -287,8 +331,9 @@ main(int argc, char **argv)
 		}
 		ram(memory, sizeof memory);
 		wifi(sock, network, sizeof network);
+		battery(battery_text, sizeof battery_text);
 		wall = time(NULL);
-		strftime(date, sizeof date, "📅 %Y-%m-%d 🕒 %H:%M:%S", localtime(&wall));
+		strftime(date, sizeof date, "📅 %a %Y-%m-%d 🕒 %H:%M:%S", localtime(&wall));
 		status_ready = 1;
 		publish();
 		if (once) {
