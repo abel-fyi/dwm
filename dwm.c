@@ -1705,9 +1705,14 @@ void
 swaptags(const Arg *arg)
 {
 	Client *c;
+	Pertag *p = selmon->pertag;
 	unsigned int target = arg->ui & TAGMASK;
 	unsigned int current = selmon->tagset[selmon->seltags];
 	unsigned int both = current | target;
+	unsigned int a, b, mask, tmpu;
+	int tmpi;
+	float tmpf;
+	const Layout *tmpl;
 
 	/* Swap two single tags on the selected monitor. */
 	if (!target || (target & (target - 1)) || target == current
@@ -1716,6 +1721,27 @@ swaptags(const Arg *arg)
 	for (c = selmon->clients; c; c = c->next)
 		if ((c->tags & both) == current || (c->tags & both) == target)
 			c->tags ^= both;
+	for (a = 1, mask = current; mask >>= 1; a++);
+	for (b = 1, mask = target; mask >>= 1; b++);
+	/* Swap the per-tag settings along with the clients. */
+	tmpi = p->nmasters[a];
+	p->nmasters[a] = p->nmasters[b];
+	p->nmasters[b] = tmpi;
+	tmpf = p->mfacts[a];
+	p->mfacts[a] = p->mfacts[b];
+	p->mfacts[b] = tmpf;
+	tmpu = p->sellts[a];
+	p->sellts[a] = p->sellts[b];
+	p->sellts[b] = tmpu;
+	tmpl = p->ltidxs[a][0];
+	p->ltidxs[a][0] = p->ltidxs[b][0];
+	p->ltidxs[b][0] = tmpl;
+	tmpl = p->ltidxs[a][1];
+	p->ltidxs[a][1] = p->ltidxs[b][1];
+	p->ltidxs[b][1] = tmpl;
+	tmpi = p->showbars[a];
+	p->showbars[a] = p->showbars[b];
+	p->showbars[b] = tmpi;
 	view(arg);
 }
 

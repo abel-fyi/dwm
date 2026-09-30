@@ -5,7 +5,7 @@
 - vol/mute and brightness bindings (pactl and brightnessctl).
 - fixed gaps; no keybindings
 - pertag
-- swaptags (alt+shift+1–9)
+- swaptags (alt+shift+1–9; moves per-tag settings with the windows)
 - super modifier
 - resizehints = 0
 - super+e searches emoji.txt with dmenu and copies the chosen emoji to the clipboard.
@@ -14,5 +14,6 @@
 build with `make`; install with `sudo make install`. start `dwm-status &`
 before dwm in your x session. requires x11/xft/xinerama and libpulse headers.
 customize config.h; config.def.h is stock. included patches are already applied.
+patches apply in any order; swaptags needs pertag present when building.
 emoji picker requires dmenu and xclip; config.h expects this repo at ~/src/dwm.
 bar and border translucency require a compositor; alpha-6.8.diff is already applied.
