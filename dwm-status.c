@@ -267,7 +267,7 @@ audio(pa_mainloop *loop)
 		if (!context)
 			return;
 		pa_context_set_state_callback(context, context_state, loop);
-		pa_context_connect(context, NULL, PA_CONTEXT_NOAUTOSPAWN, NULL);
+		pa_context_connect(context, NULL, PA_CONTEXT_NOFLAGS, NULL);
 	}
 	if (pa_context_get_state(context) == PA_CONTEXT_READY && !pending) {
 		op = pa_context_get_server_info(context, server_info, NULL);
