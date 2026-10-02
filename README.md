@@ -6,6 +6,10 @@
 - brightness keys use brightnessctl (1% steps).
 - super+r toggles redshift; requires redshift with randr support.
 - nighttemp in config.h sets the temperature; default 3500 K.
+- super+s saves the desktop to ~/Pictures/Screenshots/ with a timestamp.
+- super+shift+s selects an area or window to save.
+- super+ctrl+s selects an area or window to copy to the clipboard.
+- screenshots require scrot; clipboard captures also require xclip.
 - fixed gaps; no keybindings
 - pertag
 - swaptags (alt+shift+1–9; moves per-tag settings with the windows)
