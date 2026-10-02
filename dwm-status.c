@@ -356,7 +356,7 @@ main(int argc, char **argv)
 		local = localtime(&wall);
 		/* Refresh the calendar when the local day changes, including clock adjustments. */
 		if (local->tm_year != calendar_year || local->tm_yday != calendar_day) {
-			strftime(calendar, sizeof calendar, "📅 %a %Y-%m-%d", local);
+			strftime(calendar, sizeof calendar, "📅 %a %m-%d", local);
 			calendar_year = local->tm_year;
 			calendar_day = local->tm_yday;
 		}

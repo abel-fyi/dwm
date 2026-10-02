@@ -75,6 +75,21 @@ static const char *mutecmd[] = { "pactl", "set-sink-mute", "@DEFAULT_SINK@", "to
 static const char *brightupcmd[] = { "brightnessctl", "set", "+5%", NULL };
 static const char *brightdowncmd[] = { "brightnessctl", "--min-value=1", "set", "5%-", NULL };
 
+/* Night mode temperature in kelvin; lower values give a warmer tint. */
+static const char nighttemp[] = "3500";
+
+static void
+togglenight(const Arg *arg)
+{
+	static int enabled;
+	const char *on[] = { "redshift", "-m", "randr", "-P", "-O", nighttemp, NULL };
+	const char *off[] = { "redshift", "-m", "randr", "-x", NULL };
+
+	(void)arg;
+	spawn(&(Arg){ .v = enabled ? off : on });
+	enabled = !enabled;
+}
+
 static const Key keys[] = {
 	{ 0, XF86XK_AudioRaiseVolume, spawn, {.v = volupcmd } },
 	{ 0, XF86XK_AudioLowerVolume, spawn, {.v = voldowncmd } },
@@ -84,6 +99,7 @@ static const Key keys[] = {
 	/* modifier                     key        function        argument */
 	{ MODKEY,                       XK_p,      spawn,          {.v = dmenucmd } },
 	{ MODKEY,                       XK_e,      spawn,          {.v = emojicmd } },
+	{ MODKEY,                       XK_r,      togglenight,    {0} },
 	{ MODKEY|ShiftMask,             XK_Return, spawn,          {.v = termcmd } },
 	{ MODKEY,                       XK_b,      togglebar,      {0} },
 	{ MODKEY,                       XK_j,      focusstack,     {.i = +1 } },
