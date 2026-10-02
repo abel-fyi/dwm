@@ -29,14 +29,19 @@ static void audio(pa_mainloop *loop);
 static void
 publish(void)
 {
+	static char published[sizeof status];
+
 	if (!status_ready)
 		return;
 	snprintf(status, sizeof status, " %s  %s  %s  %s%s  %s ",
 	         usage, memory, network, vol, battery_text, date);
 	if (display) {
+		if (!strcmp(status, published))
+			return;
 		XChangeProperty(display, DefaultRootWindow(display), XA_WM_NAME,
 		                utf8, 8, PropModeReplace, (unsigned char *)status, strlen(status));
 		XFlush(display);
+		memcpy(published, status, strlen(status) + 1);
 	}
 }
 
@@ -80,15 +85,20 @@ ram(char *out, size_t size)
 {
 	char line[256];
 	unsigned long total = 0, available = 0;
+	int found = 0;
 	FILE *f = fopen("/proc/meminfo", "r");
 	if (f) {
 		while (fgets(line, sizeof line, f)) {
-			sscanf(line, "MemTotal: %lu", &total);
-			sscanf(line, "MemAvailable: %lu", &available);
+			if (sscanf(line, "MemTotal: %lu", &total) == 1)
+				found |= 1;
+			else if (sscanf(line, "MemAvailable: %lu", &available) == 1)
+				found |= 2;
+			if (found == 3)
+				break;
 		}
 		fclose(f);
 	}
-	if (total)
+	if (found == 3 && total && available <= total)
 		snprintf(out, size, "💾 %.1f/%.1fG",
 		         (total - available) / 1048576.0, total / 1048576.0);
 	else
@@ -284,10 +294,13 @@ main(int argc, char **argv)
 {
 	pa_mainloop *loop;
 	unsigned long long previous = 0, prev_idle = 0, total, idle;
-	double deadline;
+	double deadline, remaining, battery_deadline = 0, sampled;
 	time_t wall;
+	struct tm *local;
+	char calendar[24], clock_text[24];
+	int calendar_year = -1, calendar_day = -1;
 	int once = argc == 2 && !strcmp(argv[1], "--once");
-	int sock;
+	int sock, timeout;
 	if (argc > 1 && !once) {
 		fprintf(stderr, "usage: %s [--once]\n", argv[0]);
 		return 1;
@@ -311,8 +324,11 @@ main(int argc, char **argv)
 	audio(loop);
 	deadline = now() + 1;
 	while (running) {
-		/* PulseAudio's poll handles events while sleeping between updates. */
-		if (pa_mainloop_prepare(loop, 100) < 0 || pa_mainloop_poll(loop) < 0 ||
+		/* Sleep until the next status update; audio events wake us immediately.
+		 * PulseAudio expects the timeout in microseconds. */
+		remaining = deadline - now();
+		timeout = remaining > 0 ? (int)(remaining * 1000000) + 1 : 0;
+		if (pa_mainloop_prepare(loop, timeout) < 0 || pa_mainloop_poll(loop) < 0 ||
 		    pa_mainloop_dispatch(loop) < 0) {
 			if (errno == EINTR) continue;
 			break;
@@ -331,16 +347,30 @@ main(int argc, char **argv)
 		}
 		ram(memory, sizeof memory);
 		wifi(sock, network, sizeof network);
-		battery(battery_text, sizeof battery_text);
+		sampled = now();
+		if (sampled >= battery_deadline) {
+			battery(battery_text, sizeof battery_text);
+			battery_deadline = sampled + 60;
+		}
 		wall = time(NULL);
-		strftime(date, sizeof date, "📅 %a %Y-%m-%d 🕒 %H:%M:%S", localtime(&wall));
+		local = localtime(&wall);
+		/* Refresh the calendar when the local day changes, including clock adjustments. */
+		if (local->tm_year != calendar_year || local->tm_yday != calendar_day) {
+			strftime(calendar, sizeof calendar, "📅 %a %Y-%m-%d", local);
+			calendar_year = local->tm_year;
+			calendar_day = local->tm_yday;
+		}
+		strftime(clock_text, sizeof clock_text, " 🕒 %H:%M:%S", local);
+		snprintf(date, sizeof date, "%s%s", calendar, clock_text);
 		status_ready = 1;
 		publish();
 		if (once) {
 			puts(status);
 			break;
 		}
-		audio(loop);
+		/* Volume updates come from subscriptions; only retry failed connections. */
+		if (!context || !PA_CONTEXT_IS_GOOD(pa_context_get_state(context)))
+			audio(loop);
 		deadline += 1;
 		if (deadline < now()) deadline = now() + 1;
 	}
