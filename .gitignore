@@ -1,0 +1,5 @@
+*.o
+/dwm
+/dwm-status
+/dwm-*.tar
+/dwm-*.tar.gz

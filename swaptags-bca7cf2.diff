@@ -1,0 +1,73 @@
+--- a/dwm.c
++++ b/dwm.c
+@@ -205,6 +205,7 @@
+ static void seturgent(Client *c, int urg);
+ static void showhide(Client *c);
+ static void spawn(const Arg *arg);
++static void swaptags(const Arg *arg);
+ static void tag(const Arg *arg);
+ static void tagmon(const Arg *arg);
+ static void tile(Monitor *m);
+@@ -1679,6 +1680,50 @@
+ }
+ 
+ void
++swaptags(const Arg *arg)
++{
++	Client *c;
++	Pertag *p = selmon->pertag;
++	unsigned int target = arg->ui & TAGMASK;
++	unsigned int current = selmon->tagset[selmon->seltags];
++	unsigned int both = current | target;
++	unsigned int a, b, mask, tmpu;
++	int tmpi;
++	float tmpf;
++	const Layout *tmpl;
++
++	/* Swap two single tags on the selected monitor. */
++	if (!target || (target & (target - 1)) || target == current
++	|| !current || (current & (current - 1)))
++		return;
++	for (c = selmon->clients; c; c = c->next)
++		if ((c->tags & both) == current || (c->tags & both) == target)
++			c->tags ^= both;
++	for (a = 1, mask = current; mask >>= 1; a++);
++	for (b = 1, mask = target; mask >>= 1; b++);
++	/* Swap the per-tag settings along with the clients. */
++	tmpi = p->nmasters[a];
++	p->nmasters[a] = p->nmasters[b];
++	p->nmasters[b] = tmpi;
++	tmpf = p->mfacts[a];
++	p->mfacts[a] = p->mfacts[b];
++	p->mfacts[b] = tmpf;
++	tmpu = p->sellts[a];
++	p->sellts[a] = p->sellts[b];
++	p->sellts[b] = tmpu;
++	tmpl = p->ltidxs[a][0];
++	p->ltidxs[a][0] = p->ltidxs[b][0];
++	p->ltidxs[b][0] = tmpl;
++	tmpl = p->ltidxs[a][1];
++	p->ltidxs[a][1] = p->ltidxs[b][1];
++	p->ltidxs[b][1] = tmpl;
++	tmpi = p->showbars[a];
++	p->showbars[a] = p->showbars[b];
++	p->showbars[b] = tmpi;
++	view(arg);
++}
++
++void
+ tag(const Arg *arg)
+ {
+ 	if (selmon->sel && arg->ui & TAGMASK) {
+--- a/config.h
++++ b/config.h
+@@ -51,7 +51,8 @@
+ 	{ MODKEY,                       KEY,      view,           {.ui = 1 << TAG} }, \
+ 	{ MODKEY|ControlMask,           KEY,      toggleview,     {.ui = 1 << TAG} }, \
+ 	{ MODKEY|ShiftMask,             KEY,      tag,            {.ui = 1 << TAG} }, \
+-	{ MODKEY|ControlMask|ShiftMask, KEY,      toggletag,      {.ui = 1 << TAG} },
++	{ MODKEY|ControlMask|ShiftMask, KEY,      toggletag,      {.ui = 1 << TAG} }, \
++	{ Mod1Mask|ShiftMask,            KEY,      swaptags,       {.ui = 1 << TAG} },
+ 
+ /* helper for spawning shell commands in the pre dwm-5.0 fashion */
+ #define SHCMD(cmd) { .v = (const char*[]){ "/bin/sh", "-c", cmd, NULL } }
