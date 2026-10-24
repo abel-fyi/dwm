@@ -66,12 +66,26 @@ static const char *emojicmd[] = {
 	"/bin/sh", "-c", "exec \"$DWM_REPO/emoji-picker\" \"$@\"",
 	"emoji-picker", dmenufont, col_gray1, col_gray3, col_cyan, col_gray4, NULL
 };
+static const char *screenshotcmd[] = {
+	"/bin/sh", "-c",
+	"mkdir -p \"$HOME/Pictures/Screenshots\" && "
+	"scrot \"$HOME/Pictures/Screenshots/%Y-%m-%d_%H-%M-%S.png\"",
+	NULL
+};
+static const char *selectshotcmd[] = {
+	"/bin/sh", "-c",
+	"mkdir -p \"$HOME/Pictures/Screenshots\" && "
+	"scrot -s \"$HOME/Pictures/Screenshots/%Y-%m-%d_%H-%M-%S.png\"",
+	NULL
+};
 static const char *termcmd[]  = { "xterm", NULL };
 
 static const Key keys[] = {
 	/* modifier                     key        function        argument */
 	{ MODKEY,                       XK_p,      spawn,          {.v = dmenucmd } },
 	{ MODKEY,                       XK_e,      spawn,          {.v = emojicmd } },
+	{ MODKEY,                       XK_s,      spawn,          {.v = screenshotcmd } },
+	{ MODKEY|ShiftMask,             XK_s,      spawn,          {.v = selectshotcmd } },
 	{ MODKEY|ShiftMask,             XK_Return, spawn,          {.v = termcmd } },
 	{ MODKEY,                       XK_b,      togglebar,      {0} },
 	{ MODKEY,                       XK_j,      focusstack,     {.i = +1 } },

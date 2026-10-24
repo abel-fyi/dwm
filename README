@@ -10,6 +10,9 @@ My dwm setup, with these patches:
 It also has a dmenu emoji picker on **Super+E**. Selected emoji are copied to
 the clipboard with `xclip`.
 
+Screenshots use `scrot`: **Super+S** captures the screen, and **Super+Shift+S**
+lets you select an area. Images go in `~/Pictures/Screenshots`.
+
 The status bar shows the date and time with a calendar emoji. It uses the
 standard `date` and `xsetroot` commands, so the status script works on OpenBSD,
 NetBSD, and Linux.
@@ -20,9 +23,9 @@ Build it with:
 make
 ```
 
-Install `dmenu` and `xclip` for the emoji picker. No system install is needed;
-`startdwm` launches the dwm binary built in this directory. Add this line to
-`.xinitrc` (adjust the path if needed):
+Install `dmenu`, `xclip`, and `scrot` for the extra key bindings. No system
+install is needed; `startdwm` launches the dwm binary built in this directory.
+Add this line to `.xinitrc` (adjust the path if needed):
 
 ```sh
 exec "$HOME/src/dwm/startdwm"
