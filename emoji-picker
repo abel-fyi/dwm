@@ -1,0 +1,19 @@
+#!/bin/sh
+
+repo_dir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd) || exit 1
+font=$1
+normal_bg=$2
+normal_fg=$3
+selected_bg=$4
+selected_fg=$5
+
+choice=$(dmenu -i -l 20 -p emoji \
+	-fn "$font" \
+	-nb "$normal_bg" \
+	-nf "$normal_fg" \
+	-sb "$selected_bg" \
+	-sf "$selected_fg" \
+	< "$repo_dir/emoji.txt") || exit 0
+
+[ -n "$choice" ] || exit 0
+printf '%s' "${choice%% *}" | xclip -selection clipboard

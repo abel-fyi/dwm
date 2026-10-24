@@ -1,0 +1,31 @@
+# dwm
+
+My dwm setup, with these patches:
+
+- gaps
+- pertag
+- attachbottom
+- swaptags
+
+It also has a dmenu emoji picker on **Super+E**. Selected emoji are copied to
+the clipboard with `xclip`.
+
+The status bar shows the date and time with a calendar emoji. It uses the
+standard `date` and `xsetroot` commands, so the status script works on OpenBSD,
+NetBSD, and Linux.
+
+Build it with:
+
+```sh
+make
+```
+
+Install `dmenu` and `xclip` for the emoji picker. No system install is needed;
+`startdwm` launches the dwm binary built in this directory. Add this line to
+`.xinitrc` (adjust the path if needed):
+
+```sh
+exec "$HOME/src/dwm/startdwm"
+```
+
+The startup script sets the background and updates the bar.

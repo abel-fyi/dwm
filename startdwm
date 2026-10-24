@@ -1,0 +1,22 @@
+#!/bin/sh
+
+repo_dir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd) || exit 1
+export DWM_REPO=$repo_dir
+
+xsetroot -mod 16 16 -bg '#151515' -fg '#292929'
+
+update_status() {
+	while :; do
+		xsetroot -name " 📅 $(date '+%a %b %d %H:%M') "
+		sleep 30
+	done
+}
+
+update_status &
+status_pid=$!
+
+"$repo_dir/dwm" "$@"
+wm_status=$?
+kill -TERM "$status_pid" 2>/dev/null
+wait "$status_pid" 2>/dev/null
+exit "$wm_status"

@@ -1,0 +1,5 @@
+/dwm
+/*.o
+/config.h.orig
+/dwm.c.orig
+/other/
