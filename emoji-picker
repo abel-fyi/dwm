@@ -1,0 +1,21 @@
+#!/bin/sh
+
+script_dir=$(CDPATH= cd "$(dirname "$0")" && pwd)
+
+if [ "$1" = "-m" ]; then
+	monitor=${2:-0}
+else
+	monitor=0
+fi
+
+selection=$(sed '/^#/d' "$script_dir/emojis.txt" | dmenu \
+	-m "$monitor" \
+	-l 10 \
+	-fn 'monospace:size=10' \
+	-nb '#222222' \
+	-nf '#bbbbbb' \
+	-sb '#005577' \
+	-sf '#eeeeee') || exit
+
+[ -n "$selection" ] || exit
+printf '%s\n' "$selection" | cut -f1 | xclip -selection clipboard

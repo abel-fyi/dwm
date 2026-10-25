@@ -1,0 +1,34 @@
+#!/bin/sh
+
+script_dir=$(CDPATH= cd "$(dirname "$0")" && pwd)
+PATH="$script_dir:$PATH"
+export PATH
+
+xsetroot -mod 16 16 -bg '#222222' -fg '#444444'
+
+status_loop() {
+	trap 'kill "$sleep_pid" 2>/dev/null; exit 0' TERM
+	os=$(uname -s)
+	host=$(uname -n)
+	user=$(id -un)
+	while :; do
+		time=$(LC_TIME=C date '+%a %d %b %H:%M:%S')
+		xsetroot -name " 📅 $time | 🖥️ $os | 🌐 $host | 👤 $user "
+		sleep 1 &
+		sleep_pid=$!
+		wait "$sleep_pid"
+	done
+}
+
+status_loop &
+status_pid=$!
+
+cleanup() {
+	kill "$status_pid" 2>/dev/null
+	wait "$status_pid" 2>/dev/null
+}
+
+trap cleanup 0
+trap 'exit 1' HUP INT TERM
+"$script_dir/dwm" "$@"
+exit $?
