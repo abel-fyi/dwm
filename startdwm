@@ -1,34 +1,109 @@
 #!/bin/sh
+# Start dwm and maintain its status bar using portable shell and X11 tools.
+# Bar order: OS, hostname, user, network reply, battery, date and time.
+# Keep OS-specific additions guarded by the OS and easy to toggle.
 
-script_dir=$(CDPATH= cd "$(dirname "$0")" && pwd)
+# Optional Linux battery field. Comment out this line to hide it.
+linux_battery_enabled=1
+
+# Approximate seconds between probes; each loop ends with a one-second sleep.
+ping_interval=30
+
+script_dir=$(CDPATH= cd "$(dirname "$0")" && pwd) || exit 1
+# Let dwm find the repo's emoji-picker without installing it.
 PATH="$script_dir:$PATH"
 export PATH
 
-xsetroot -mod 16 16 -bg '#222222' -fg '#444444'
+# Collect information that stays the same throughout the session.
+os=$(uname -s)
+static_status="🖥️ $os | 🌐 $(uname -n) | 👤 $(id -un)"
 
-status_loop() {
-	trap 'kill "$sleep_pid" 2>/dev/null; exit 0' TERM
-	os=$(uname -s)
-	host=$(uname -n)
-	user=$(id -un)
-	while :; do
-		time=$(LC_TIME=C date '+%a %d %b %H:%M:%S')
-		xsetroot -name " 📅 $time | 🖥️ $os | 🌐 $host | 👤 $user "
-		sleep 1 &
-		sleep_pid=$!
-		wait "$sleep_pid"
+# Set battery_text from the first readable Linux battery, or leave it empty.
+read_linux_battery() {
+	battery_text=
+	for battery_file in /sys/class/power_supply/BAT*/capacity; do
+		if [ -r "$battery_file" ] && IFS= read -r battery < "$battery_file"; then
+			battery_text=" | 🔋 $battery%"
+			return
+		fi
 	done
 }
 
-status_loop &
-status_pid=$!
+# Stop all the supplied processes, then collect their exit statuses.
+stop_processes() {
+	for pid do
+		[ -n "$pid" ] && kill "$pid" 2>/dev/null
+	done
+	for pid do
+		[ -n "$pid" ] && wait "$pid" 2>/dev/null
+	done
+}
 
+# Update the clock every second. Ping runs in the background so an unanswered
+# probe cannot pause the bar. Never start another probe while one is running.
+update_status() {
+	ping_pid=
+	sleep_pid=
+	trap 'stop_processes "$ping_pid" "$sleep_pid"; exit 0' HUP INT TERM
+	ping_available=0
+	network_text='📡 ping unavailable'
+	if command -v ping >/dev/null 2>&1; then
+		ping_available=1
+		network_text='📡 checking'
+	fi
+
+	battery_text=
+	battery_minute=
+	tick=0
+	while :; do
+		# Collect a finished probe without waiting for a running one.
+		if [ -n "$ping_pid" ] && ! kill -0 "$ping_pid" 2>/dev/null; then
+			if wait "$ping_pid"; then
+				network_text='📡 reachable'
+			else
+				network_text='📡 no reply'
+			fi
+			ping_pid=
+		fi
+
+		# Start a probe at the configured interval, with no overlapping probes.
+		if [ "$tick" -eq 0 ] && [ "$ping_available" -eq 1 ] && [ -z "$ping_pid" ]; then
+			ping -c 1 8.8.8.8 >/dev/null 2>&1 &
+			ping_pid=$!
+		fi
+
+		date_text=$(LC_TIME=C date '+%a %d %b %H:%M:%S')
+		# Drop the seconds to detect a new clock minute without another date call.
+		minute=${date_text%:*}
+		if [ "$minute" != "$battery_minute" ] && [ "$os" = Linux ] && [ "${linux_battery_enabled:-0}" = 1 ]; then
+			read_linux_battery
+			battery_minute=$minute
+		fi
+
+		xsetroot -name " $static_status | $network_text$battery_text | 📅 $date_text "
+		# Waiting on a background sleep lets the shutdown trap run immediately.
+		sleep 1 &
+		sleep_pid=$!
+		wait "$sleep_pid"
+		sleep_pid=
+		tick=$(((tick + 1) % ping_interval))
+	done
+}
+
+# Stop dwm and the status updater when the session ends.
 cleanup() {
-	kill "$status_pid" 2>/dev/null
-	wait "$status_pid" 2>/dev/null
+	stop_processes "${dwm_pid:-}" "${status_pid:-}"
 }
 
 trap cleanup 0
 trap 'exit 1' HUP INT TERM
-"$script_dir/dwm" "$@"
-exit $?
+
+xsetroot -mod 16 16 -bg '#111111' -fg '#222222'
+update_status &
+status_pid=$!
+"$script_dir/dwm" "$@" &
+dwm_pid=$!
+wait "$dwm_pid"
+dwm_status=$?
+dwm_pid=
+exit "$dwm_status"
