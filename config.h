@@ -63,7 +63,8 @@ static const char *dmenucmd[] = { "dmenu_run", "-m", dmenumon, "-fn", dmenufont,
 static const char *emojicmd[] = { "emoji-picker", "-m", dmenumon, NULL };
 static const char *screenshotcmd[] = { "scrot", NULL };
 static const char *selectscreenshotcmd[] = { "scrot", "-s", NULL };
-static const char *redshiftcmd[] = { "redshift", NULL };
+static const char *redshiftcmd[] = { "redshift", "-O", "4500", NULL };
+static const char *redshiftresetcmd[] = { "redshift", "-x", NULL };
 static const char *termcmd[]  = { "xterm", NULL };
 #ifdef __linux__
 #include <X11/XF86keysym.h>
@@ -72,6 +73,16 @@ static const char *brightnessdowncmd[] = { "brightnessctl", "set", "5%-", NULL }
 static const char *volumeupcmd[] = { "wpctl", "set-volume", "@DEFAULT_SINK@", "5%+", NULL };
 static const char *volumedowncmd[] = { "wpctl", "set-volume", "@DEFAULT_SINK@", "5%-", NULL };
 #endif
+
+static void
+toggleredshift(const Arg *arg)
+{
+	static int active;
+	Arg cmd = { .v = active ? redshiftresetcmd : redshiftcmd };
+	(void)arg;
+	spawn(&cmd);
+	active = !active;
+}
 
 static const Key keys[] = {
 	/* modifier                     key        function        argument */
@@ -85,7 +96,7 @@ static const Key keys[] = {
 	{ MODKEY,                       XK_e,      spawn,          {.v = emojicmd } },
 	{ MODKEY,                       XK_s,      spawn,          {.v = screenshotcmd } },
 	{ MODKEY|ShiftMask,             XK_s,      spawn,          {.v = selectscreenshotcmd } },
-	{ MODKEY,                       XK_r,      spawn,          {.v = redshiftcmd } },
+	{ MODKEY,                       XK_r,      toggleredshift, {0} },
 	{ MODKEY|ShiftMask,             XK_Return, spawn,          {.v = termcmd } },
 	{ MODKEY,                       XK_b,      togglebar,      {0} },
 	{ MODKEY,                       XK_j,      focusstack,     {.i = +1 } },
