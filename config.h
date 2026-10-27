@@ -65,9 +65,22 @@ static const char *screenshotcmd[] = { "scrot", NULL };
 static const char *selectscreenshotcmd[] = { "scrot", "-s", NULL };
 static const char *redshiftcmd[] = { "redshift", NULL };
 static const char *termcmd[]  = { "xterm", NULL };
+#ifdef __linux__
+#include <X11/XF86keysym.h>
+static const char *brightnessupcmd[] = { "brightnessctl", "set", "+5%", NULL };
+static const char *brightnessdowncmd[] = { "brightnessctl", "set", "5%-", NULL };
+static const char *volumeupcmd[] = { "wpctl", "set-volume", "@DEFAULT_SINK@", "5%+", NULL };
+static const char *volumedowncmd[] = { "wpctl", "set-volume", "@DEFAULT_SINK@", "5%-", NULL };
+#endif
 
 static const Key keys[] = {
 	/* modifier                     key        function        argument */
+#ifdef __linux__
+	{ 0,                            XF86XK_MonBrightnessUp,   spawn, {.v = brightnessupcmd } },
+	{ 0,                            XF86XK_MonBrightnessDown, spawn, {.v = brightnessdowncmd } },
+	{ 0,                            XF86XK_AudioRaiseVolume,  spawn, {.v = volumeupcmd } },
+	{ 0,                            XF86XK_AudioLowerVolume,  spawn, {.v = volumedowncmd } },
+#endif
 	{ MODKEY,                       XK_p,      spawn,          {.v = dmenucmd } },
 	{ MODKEY,                       XK_e,      spawn,          {.v = emojicmd } },
 	{ MODKEY,                       XK_s,      spawn,          {.v = screenshotcmd } },

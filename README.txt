@@ -16,8 +16,12 @@ Super+e            Search emojis and copy one with xclip
 Super+s            Take a full-screen screenshot with scrot
 Super+Shift+s      Select an area to screenshot with scrot
 Super+r            Run redshift
+Brightness up/down Adjust screen brightness by 5% on Linux (brightnessctl)
+Volume up/down     Adjust default output volume by 5% on Linux (wpctl)
 
 The emoji picker needs dmenu and xclip. Screenshot keys need scrot.
+Linux brightness keys need brightnessctl and working brightness-key events.
+Linux volume keys need PipeWire with WirePlumber (`wpctl`) and working volume-key events.
 
 Patches
 ----------
