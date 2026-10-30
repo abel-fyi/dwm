@@ -1,0 +1,18 @@
+#!/bin/sh
+
+name=$(printf "" | dmenu -p "Save screenshot as:" -fn "monospace:size=11" -nb "#222222" -nf "#bbbbbb" -sb "#005577" -sf "#eeeeee") || exit 0
+[ -n "$name" ] || exit 0
+case $name in
+	*.*) ;;
+	*) name=$name.png ;;
+esac
+
+directory=$HOME/Pictures/Screenshots
+mkdir -p "$directory" || exit 1
+case $name in
+	/*) file=$name ;;
+	*) file=$directory/$name ;;
+esac
+
+[ ! -e "$file" ] || exit 1
+scrot "$@" "$file"

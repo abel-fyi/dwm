@@ -61,8 +61,8 @@ static const Layout layouts[] = {
 static char dmenumon[8]; /* component of dmenucmd, manipulated in spawn() */
 static const char *dmenucmd[] = { "dmenu_run", "-m", dmenumon, "-fn", dmenufont, "-nb", col_gray1, "-nf", col_gray3, "-sb", col_cyan, "-sf", col_gray4, NULL };
 static const char *emojicmd[] = { "emoji-picker", "-m", dmenumon, NULL };
-static const char *screenshotcmd[] = { "scrot", NULL };
-static const char *selectscreenshotcmd[] = { "scrot", "-s", NULL };
+static const char *screenshotcmd[] = { "dwm-screenshot", NULL };
+static const char *selectscreenshotcmd[] = { "dwm-screenshot", "-s", NULL };
 static const char *redshiftcmd[] = { "redshift", "-O", "4500", NULL };
 static const char *redshiftresetcmd[] = { "redshift", "-x", NULL };
 static const char *termcmd[]  = { "xterm", NULL };

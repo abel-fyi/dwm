@@ -19,7 +19,11 @@ Super+r            Toggle a 4500K screen tint with redshift
 Brightness up/down Adjust screen brightness by 5% on Linux (brightnessctl)
 Volume up/down     Adjust default output volume by 5% on Linux (wpctl)
 
-The emoji picker needs dmenu and xclip. Screenshot keys need scrot.
+The emoji picker needs dmenu and xclip. Screenshot keys use the local
+`dwm-screenshot` helper, which needs scrot and dmenu. It asks for a filename
+before capture and saves it in `~/Pictures/Screenshots`. The filename
+extension selects the image format; `.png` is added if omitted. Absolute paths
+are also accepted. Escape cancels, and existing files are not overwritten.
 Linux brightness keys need brightnessctl and working brightness-key events.
 Linux volume keys need PipeWire with WirePlumber (`wpctl`) and working volume-key events.
 The toggle state starts off when dwm starts; if a tint remains, run `redshift -x` to reset it.

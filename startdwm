@@ -1,4 +1,9 @@
 #!/bin/sh
+# Load terminal settings for display-manager sessions as well as startx.
+if command -v xrdb >/dev/null 2>&1 && [ -r "$HOME/.Xdefaults" ]; then
+	xrdb -merge "$HOME/.Xdefaults"
+fi
+
 # Start dwm and maintain its status bar using portable shell and X11 tools.
 # Bar order: OS, hostname, user, network reply, battery, date and time.
 # Keep OS-specific additions guarded by the OS and easy to toggle.
