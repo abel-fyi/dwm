@@ -1,0 +1,58 @@
+diff --git a/dwm.c b/dwm.c
+index 604def2..27c2d66 100644
+--- a/dwm.c
++++ b/dwm.c
+@@ -232,6 +237,7 @@ static int xerror(Display *dpy, XErrorEvent *ee);
+ static int xerrordummy(Display *dpy, XErrorEvent *ee);
+ static int xerrorstart(Display *dpy, XErrorEvent *ee);
+ static void zoom(const Arg *arg);
++static void swaptags(const Arg *arg);
+ 
+ /* variables */
+ static const char broken[] = "broken";
+diff --git a/dwm.c b/dwm.c
+index 604def2..27c2d66 100644
+--- a/dwm.c
++++ b/dwm.c
+@@ -2150,6 +2267,41 @@ zoom(const Arg *arg)
+ 	pop(c);
+ }
+ 
++void
++swaptags(const Arg *arg)
++{
++	unsigned int newtag = arg->ui & TAGMASK;
++	unsigned int curtag = selmon->tagset[selmon->seltags];
++	unsigned int from, to, tmpui;
++	int tmpint;
++	float tmpfloat;
++	const Layout *tmplayout;
++	Pertag *pt = selmon->pertag;
++
++	if (!newtag || (newtag & (newtag - 1)) || newtag == curtag
++	|| !curtag || (curtag & (curtag - 1)))
++		return;
++
++	for (from = 1; !(curtag & (1U << (from - 1))); from++);
++	for (to = 1; !(newtag & (1U << (to - 1))); to++);
++	tmpint = pt->nmasters[from]; pt->nmasters[from] = pt->nmasters[to]; pt->nmasters[to] = tmpint;
++	tmpfloat = pt->mfacts[from]; pt->mfacts[from] = pt->mfacts[to]; pt->mfacts[to] = tmpfloat;
++	tmpui = pt->sellts[from]; pt->sellts[from] = pt->sellts[to]; pt->sellts[to] = tmpui;
++	tmpint = pt->showbars[from]; pt->showbars[from] = pt->showbars[to]; pt->showbars[to] = tmpint;
++	for (int i = 0; i < 2; i++) {
++		tmplayout = pt->ltidxs[from][i];
++		pt->ltidxs[from][i] = pt->ltidxs[to][i];
++		pt->ltidxs[to][i] = tmplayout;
++	}
++
++	for (Client *c = selmon->clients; c != NULL; c = c->next) {
++		if (!!(c->tags & newtag) != !!(c->tags & curtag))
++			c->tags ^= curtag ^ newtag;
++	}
++
++	view(&(Arg){.ui = newtag});
++}
++
+ int
+ main(int argc, char *argv[])
+ {

@@ -1,0 +1,59 @@
+diff --git a/dwm.c b/dwm.c
+index 604def2..27c2d66 100644
+--- a/dwm.c
++++ b/dwm.c
+@@ -1696,35 +1753,37 @@ tagmon(const Arg *arg)
+ void
+ tile(Monitor *m)
+ {
+-	unsigned int i, n, h, mw, my, ty;
++	unsigned int i, n, h, r, gap, mw, my, ty;
+ 	Client *c;
+ 
+ 	for (n = 0, c = nexttiled(m->clients); c; c = nexttiled(c->next), n++);
+-	if (n == 0)
++	if (!n)
+ 		return;
+-
+-	if (n > m->nmaster)
+-		mw = m->nmaster ? m->ww * m->mfact : 0;
+-	else
+-		mw = m->ww;
+-	for (i = my = ty = 0, c = nexttiled(m->clients); c; c = nexttiled(c->next), i++)
++	gap = n > m->nmaster && m->nmaster ? MIN(gappx, m->ww / 2) : 0;
++	mw = n > m->nmaster ? (m->nmaster ? (m->ww - gap) * m->mfact : 0) : m->ww;
++	for (i = my = ty = 0, c = nexttiled(m->clients); c; c = nexttiled(c->next), i++) {
+ 		if (i < m->nmaster) {
+-			h = (m->wh - my) / (MIN(n, m->nmaster) - i);
+-			resize(c, m->wx, m->wy + my, mw - (2*c->bw), h - (2*c->bw), 0);
+-			if (my + HEIGHT(c) < m->wh)
+-				my += HEIGHT(c);
++			r = MIN(n, m->nmaster) - i;
++			unsigned int g = r > 1 ? MIN(gappx, (m->wh - my) / r) : 0;
++			h = (m->wh - my - g * (r - 1)) / r;
++			resize(c, m->wx, m->wy + my, mw - 2 * c->bw, h - 2 * c->bw, 0);
++			if (my + HEIGHT(c) + g < m->wh)
++				my += HEIGHT(c) + g;
+ 		} else {
+-			h = (m->wh - ty) / (n - i);
+-			resize(c, m->wx + mw, m->wy + ty, m->ww - mw - (2*c->bw), h - (2*c->bw), 0);
+-			if (ty + HEIGHT(c) < m->wh)
+-				ty += HEIGHT(c);
++			r = n - i;
++			unsigned int g = r > 1 ? MIN(gappx, (m->wh - ty) / r) : 0;
++			h = (m->wh - ty - g * (r - 1)) / r;
++			resize(c, m->wx + mw + gap, m->wy + ty, m->ww - mw - gap - 2 * c->bw, h - 2 * c->bw, 0);
++			if (ty + HEIGHT(c) + g < m->wh)
++				ty += HEIGHT(c) + g;
+ 		}
++	}
+ }
+ 
+ void
+ togglebar(const Arg *arg)
+ {
+-	selmon->showbar = !selmon->showbar;
++	selmon->showbar = selmon->pertag->showbars[selmon->pertag->curtag] = !selmon->showbar;
+ 	updatebarpos(selmon);
+ 	XMoveResizeWindow(dpy, selmon->barwin, selmon->wx, selmon->by, selmon->ww, bh);
+ 	arrange(selmon);

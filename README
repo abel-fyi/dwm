@@ -1,0 +1,59 @@
+DWM SETUP
+
+Based on dwm 6.8.
+
+PATCHES
+
+Apply in numerical order.
+
+  01  attachbottom
+      New windows go to the bottom
+      of the client list.
+
+  02  gaps
+      Add 5 pixel gaps between
+      tiled windows.
+
+  03  pertag
+      Keep layout, master count,
+      master size and bar visibility
+      per tag.
+
+  04  swaptags
+      Swap two tags, including their
+      saved per-tag settings.
+
+  05  movestack
+      Move the selected window up
+      or down the stack.
+
+  06  clock
+      Show the date and time,
+      including seconds, in the bar.
+
+  07  config
+      Set Super as the modifier
+      and add the patch keybindings.
+
+
+KEYBINDINGS
+
+  Super replaces Alt in the
+  default dwm keybindings.
+
+  Super+Shift+j
+      Move the selected window
+      down the stack.
+
+  Super+Shift+k
+      Move the selected window
+      up the stack.
+
+  Alt+Shift+1-9
+      Swap the current tag with
+      the numbered tag.
+
+
+CONFIGURATION
+
+  Terminal: xterm

@@ -1,0 +1,77 @@
+diff --git a/dwm.c b/dwm.c
+index 604def2..27c2d66 100644
+--- a/dwm.c
++++ b/dwm.c
+@@ -27,6 +27,8 @@
+ #include <stdio.h>
+ #include <stdlib.h>
+ #include <string.h>
++#include <time.h>
++#include <sys/select.h>
+ #include <unistd.h>
+ #include <sys/types.h>
+ #include <sys/wait.h>
+diff --git a/dwm.c b/dwm.c
+index 604def2..27c2d66 100644
+--- a/dwm.c
++++ b/dwm.c
+@@ -1386,11 +1422,32 @@ void
+ run(void)
+ {
+ 	XEvent ev;
+-	/* main event loop */
++	fd_set readfds;
++	struct timeval timeout;
++	time_t now, lastsecond = (time_t)-1;
++	int xfd = ConnectionNumber(dpy);
++
+ 	XSync(dpy, False);
+-	while (running && !XNextEvent(dpy, &ev))
+-		if (handler[ev.type])
+-			handler[ev.type](&ev); /* call handler */
++	while (running) {
++		now = time(NULL);
++		if (now != lastsecond) {
++			lastsecond = now;
++			updatestatus();
++		}
++		while (running && XPending(dpy)) {
++			XNextEvent(dpy, &ev);
++			if (handler[ev.type])
++				handler[ev.type](&ev);
++		}
++		if (!running)
++			break;
++		FD_ZERO(&readfds);
++		FD_SET(xfd, &readfds);
++		timeout.tv_sec = 1;
++		timeout.tv_usec = 0;
++		if (select(xfd + 1, &readfds, NULL, NULL, &timeout) < 0 && errno != EINTR)
++			die("select failed:");
++	}
+ }
+ 
+ void
+diff --git a/dwm.c b/dwm.c
+index 604def2..27c2d66 100644
+--- a/dwm.c
++++ b/dwm.c
+@@ -2015,8 +2098,16 @@ updatesizehints(Client *c)
+ void
+ updatestatus(void)
+ {
+-	if (!gettextprop(root, XA_WM_NAME, stext, sizeof(stext)))
+-		strcpy(stext, "dwm-"VERSION);
++	time_t now = time(NULL);
++	struct tm *local = localtime(&now);
++
++	char date[64], clock[16];
++
++	if (local && strftime(date, sizeof(date), "%a %b", local)
++	&& strftime(clock, sizeof(clock), "%H:%M:%S", local))
++		snprintf(stext, sizeof(stext), " %s %d %s ", date, local->tm_mday, clock);
++	else
++		stext[0] = '\0';
+ 	drawbar(selmon);
+ }
+ 
