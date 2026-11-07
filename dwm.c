@@ -215,6 +215,7 @@ static void tagmon(const Arg *arg);
 static void tile(Monitor *m);
 static void togglebar(const Arg *arg);
 static void togglefloating(const Arg *arg);
+static void togglescratch(const Arg *arg);
 static void toggletag(const Arg *arg);
 static void toggleview(const Arg *arg);
 static void unfocus(Client *c, int setfocus);
@@ -271,6 +272,7 @@ static Clr **scheme;
 static Display *dpy;
 static Drw *drw;
 static Monitor *mons, *selmon;
+static Client *scratchpad;
 static Window root, wmcheckwin;
 
 /* configuration, allows nested code to access above variables */
@@ -1099,6 +1101,14 @@ manage(Window w, XWindowAttributes *wa)
 	c->x = MAX(c->x, c->mon->wx);
 	c->y = MAX(c->y, c->mon->wy);
 	c->bw = borderpx;
+	if (!scratchpad && !strcmp(c->name, scratchpadname)) {
+		scratchpad = c;
+		c->isfloating = 1;
+		c->w = c->mon->ww * 4 / 5 - 2 * c->bw;
+		c->h = c->mon->wh * 2 / 5 - 2 * c->bw;
+		c->x = c->mon->wx + (c->mon->ww - WIDTH(c)) / 2;
+		c->y = c->mon->wy;
+	}
 
 	wc.border_width = c->bw;
 	XConfigureWindow(dpy, w, CWBorderWidth, &wc);
@@ -1804,6 +1814,33 @@ togglefloating(const Arg *arg)
 }
 
 void
+togglescratch(const Arg *arg)
+{
+	Client *c = scratchpad;
+
+	if (!c) {
+		spawn(arg);
+		return;
+	}
+	if (c->mon == selmon && ISVISIBLE(c)) {
+		c->tags = 0;
+		focus(NULL);
+		arrange(selmon);
+		return;
+	}
+	if (c->mon != selmon)
+		sendmon(c, selmon);
+	c->tags = selmon->tagset[selmon->seltags] & TAGMASK;
+	c->isfloating = 1;
+	resize(c, selmon->wx + selmon->ww / 10, selmon->wy,
+	       selmon->ww * 4 / 5 - 2 * c->bw,
+	       selmon->wh * 2 / 5 - 2 * c->bw, 0);
+	focus(c);
+	arrange(selmon);
+	restack(selmon);
+}
+
+void
 toggletag(const Arg *arg)
 {
 	unsigned int newtags;
@@ -1873,6 +1910,8 @@ unmanage(Client *c, int destroyed)
 	Monitor *m = c->mon;
 	XWindowChanges wc;
 
+	if (c == scratchpad)
+		scratchpad = NULL;
 	detach(c);
 	detachstack(c);
 	if (!destroyed) {

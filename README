@@ -35,6 +35,9 @@ Apply in numerical order.
       Set Super as the modifier
       and add the patch keybindings.
 
+  08  scratchpad
+      Toggle a dropdown xterm.
+
 
 KEYBINDINGS
 
@@ -48,6 +51,9 @@ KEYBINDINGS
   Super+Shift+k
       Move the selected window
       up the stack.
+
+  Super+s
+      Toggle the scratchpad.
 
   Alt+Shift+1-9
       Swap the current tag with
